@@ -38,3 +38,7 @@ Stop services
 ```
 docker compose down
 ```
+See logs
+```
+docker compose logs -f <container-name-or-id>
+```
