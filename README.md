@@ -7,9 +7,9 @@ Automatization using docker compose
 - Homebridge (integrate devices with HomeKit)
 - Cloudflared (Cloudflare Tunnel)
 - Portainer (Monitoring containers)
+- Watchower (Update containers)
 
 ## Coming soon
-- Watchower (Update containers)
 - PiHole (DNS filtering / ad blocking / privacy)
 
 # Commands
