@@ -1,17 +1,18 @@
 # Home Automation
 Automatization using docker compose
 
-## Mount your disk in NAS
-Check mount-hdd.sh to mount your disk in NAS
-
 ## First steps
 - Install docker
 - Install docker compose
+- Configure Github user if you need it (see Github section)
+- Check mount-hdd.sh to mount your disk in NAS
 - Clone this repository
+- Set static ip (see commands section)
 - Run docker compose up --build -d
 - Run install-hacs.sh
 
 ## Services
+### Available
 - Home Assistant (HACS)
 - SFTPGo (secure file transfer)
 - Homebridge (integrate devices with HomeKit)
@@ -19,11 +20,11 @@ Check mount-hdd.sh to mount your disk in NAS
 - Portainer (Monitoring containers)
 - Watchower (Update containers)
 
-## Coming soon
+### Coming soon
 - PiHole (DNS filtering / ad blocking / privacy)
 
-# Commands
-## Set static ip
+## Commands
+### Set static ip
 ```
 sudo nmtui
 ```
