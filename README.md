@@ -8,8 +8,9 @@ Automatization using docker compose
 - Check `mount-hdd.sh` to mount your disk in NAS
 - Clone this repository
 - Set static ip (see commands section)
-- Run docker compose up --build -d
-- Run install-hacs.sh
+- Configure your `.env` file with all variables required as described in `.env.example`
+- Run `docker compose up --build -d` to start containers
+- Run `install-hacs.sh` to install HACS in Home Assistant container
 
 ## Services
 ### Available
@@ -48,16 +49,19 @@ Setting > SSH and GPG keys > New SSH key
 
 ## Tailscale
 ### Create account and generate auth key
-Go toSetting > Personal Settings > Keys > Generate auth key
+Go to https://tailscale.com/ and create account.
+Move to Setting > Personal Settings > Keys > Generate auth key
 
-Enable Reusable option. Remember auth key expire in 90 days (free mode).
+Complete form and enable *Reusable* option. Remember auth key expire in 90 days (free mode).
 
-Run docker compose up --build -d and check en Machines section, go to 3 dots, edit route settings
-Check subnet routes and exit node.
+Add this key in your `.env` file.
+
+Go to Tailscale web in Machines section, go to 3 dots > edit route settings
+Check *subnet routes* and *exit node* is enabled.
 
 Install tailscale app in your mobile, login with your account and enjoy!
 
-## Docker
+## Docker commands
 Up services
 ```
 docker compose up --build -d
