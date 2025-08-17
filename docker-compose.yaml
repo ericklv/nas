@@ -10,6 +10,16 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock # Docker host control
             - ${DISK_PATH}/Docker/portainer:/data
 
+    watchtower:
+        image: containrrr/watchtower:latest
+        container_name: watchtower
+        restart: always
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        environment:
+            - WATCHTOWER_CLEANUP=true # delete old images
+            - WATCHTOWER_POLL_INTERVAL=3600 # update interval in seconds
+
     cloudflared:
         image: cloudflare/cloudflared:2025.7.0
         platform: linux/arm64 # for ARM64 architecture
