@@ -1,8 +1,9 @@
+# Commands
 ## Set static ip
 ```
 sudo nmtui
 ```
-### values
+### Values
 address 192.168.1.10/24
 
 gateway 192.168.1.1
@@ -12,10 +13,28 @@ dns 1.1.1.1
 dns 1.0.0.1
 
 ## Github
-### generate ssh key in nas
+### Generate ssh key in nas
 ```
 ssh-keygen -t rsa -b 4096 -C "elazon01@gmail.com"
 ```
 
-### github add ssh key
+### Add ssh key in github
 Setting > SSH and GPG keys > New SSH key
+
+## Docker
+Up services
+```
+docker compose up --build -d
+```
+Check status
+```
+docker ps
+```
+Enter into container
+```
+docker exec -ti <container-name-or-id> /bin/bash
+```
+Stop services
+```
+docker compose down
+```
