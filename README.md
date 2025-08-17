@@ -1,6 +1,16 @@
 # Home Automation
 Automatization using docker compose
 
+## Mount your disk in NAS
+Check mount-hdd.sh to mount your disk in NAS
+
+## First steps
+- Install docker
+- Install docker compose
+- Clone this repository
+- Run docker compose up --build -d
+- Run install-hacs.sh
+
 ## Services
 - Home Assistant (HACS)
 - SFTPGo (secure file transfer)
