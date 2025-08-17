@@ -1,3 +1,17 @@
+# Home Automation
+Automatization using docker compose
+
+## Services
+- Home Assistant (HACS)
+- SFTPGo (secure file transfer)
+- Homebridge (integrate devices with HomeKit)
+- Cloudflared (Cloudflare Tunnel)
+- Portainer (Monitoring containers)
+
+## Coming soon
+- Watchower (Update containers)
+- PiHole (DNS filtering / ad blocking / privacy)
+
 # Commands
 ## Set static ip
 ```
@@ -20,6 +34,11 @@ ssh-keygen -t rsa -b 4096 -C "elazon01@gmail.com"
 
 ### Add ssh key in github
 Setting > SSH and GPG keys > New SSH key
+
+## Generate password for portainer
+```
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin "your_password_here" | cut -d ":" -f 2
+```
 
 ## Docker
 Up services

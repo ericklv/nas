@@ -1,4 +1,17 @@
 services:
+    portainer:
+        image: portainer/portainer-ce:latest
+        container_name: portainer
+        restart: always
+        ports:
+            - "9999:9000" # Web interface
+            - "8000:8000" # (Optional) Edge agent
+        command: >
+            --admin-password ${PORTAINER_PASSWORD}
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock # Docker host control
+            - ${DISK_PATH}/Docker/portainer:/data
+
     cloudflared:
         image: cloudflare/cloudflared:2025.7.0
         platform: linux/arm64 # for ARM64 architecture
