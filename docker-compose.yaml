@@ -1,0 +1,46 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2025.7.0
+    platform: linux/arm64  # for ARM64 architecture
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
+    networks:
+      - default
+    env_file:
+      - .env
+
+  homeassistant:
+    container_name: homeassistant
+    image: homeassistant/home-assistant:2025.7
+    restart: unless-stopped
+    volumes:
+      - ${FTP_PATH}/Docker/homeassistant:/config
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "8123:8123"
+    privileged: true
+    env_file:
+      - .env
+
+  sftpgo:
+    image: drakkan/sftpgo:v2.6.6
+    container_name: sftpgo
+    restart: unless-stopped
+    ports:
+      - "6666:2022"   #  SFTP port
+      - "9998:8080"   #  Web UI port
+    volumes:
+      - ${FTP_PATH}/Docker/sftpgo:/var/lib/sftpgo
+      - ${FTP_PATH}/Docker/sftpgo/backups:/srv/sftpgo/backups
+      - ${FTP_PATH}:/srv/sftpgo/data/${FTP_USER}
+    environment:
+      - SFTPGO_USER=${FTP_USER}
+      - SFTPGO_PASSWORD=${FTP_PASSWORD}
+    networks:
+      - default
+    env_file:
+      - .env
