@@ -24,7 +24,7 @@ services:
             FTLCONF_dns_domain: "redacted"
             FTLCONF_dns_bogusPriv: "true"
             FTLCONF_dns_reply_host_IPv4: ${PIHOLE_IP}
-            FTLCONF_LOCAL_IPV4: ${PIHOLE_IP}
+            FTLCONF_dns_reply_host_force4: "true"
         volumes:
             - ${DISK_PATH}/Docker/pihole/etc-pihole:/etc/pihole
             - ${DISK_PATH}/Docker/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
@@ -32,6 +32,27 @@ services:
             - NET_ADMIN
             - SYS_TIME
             - SYS_NICE
+    tailscale:
+        image: tailscale/tailscale:latest
+        container_name: tailscale
+        restart: unless-stopped
+        network_mode: host # necesary to expose local services
+        privileged: true # necessary to manipulate the network
+        volumes:
+            - ${DISK_PATH}/Docker/tailscale:/var/lib/tailscale
+        devices:
+            - /dev/net/tun:/dev/net/tun
+        command: sh -c "
+            tailscaled &
+            sleep 5 &&
+            tailscale up \
+            --authkey=${TS_AUTHKEY} \
+            --advertise-routes=192.168.1.0/24 \
+            --advertise-exit-node \
+            --hostname=homelab-docker"
+        cap_add:
+            - NET_ADMIN
+            - SYS_MODULE
 
     watchtower:
         image: containrrr/watchtower:latest

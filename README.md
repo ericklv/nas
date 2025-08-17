@@ -20,9 +20,10 @@ Automatization using docker compose
 - Portainer (Monitoring containers)
 - Watchower (Update containers)
 - PiHole (DNS filtering / ad blocking / privacy)
+- Tailscale (VPN)
 
 ### Coming soon
-- WireGuard Easy (VPN)
+- WireGuard Easy (VPN) ...some day. CGNAT is too complicated.
 
 ## Commands
 ### Set static ip
@@ -44,6 +45,17 @@ ssh-keygen -t rsa -b 4096 -C "elazon01@gmail.com"
 
 ### Add ssh key in Github
 Setting > SSH and GPG keys > New SSH key
+
+## Tailscale
+### Create account and generate auth key
+Go toSetting > Personal Settings > Keys > Generate auth key
+
+Enable Reusable option. Remember auth key expire in 90 days (free mode).
+
+Run docker compose up --build -d and check en Machines section, go to 3 dots, edit route settings
+Check subnet routes and exit node.
+
+Install tailscale app in your mobile, login with your account and enjoy!
 
 ## Docker
 Up services
