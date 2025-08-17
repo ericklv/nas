@@ -5,7 +5,7 @@ Automatization using docker compose
 - Install docker
 - Install docker compose
 - Configure Github user if you need it (see Github section)
-- Check mount-hdd.sh to mount your disk in NAS
+- Check `mount-hdd.sh` to mount your disk in NAS
 - Clone this repository
 - Set static ip (see commands section)
 - Run docker compose up --build -d
@@ -22,6 +22,7 @@ Automatization using docker compose
 
 ### Coming soon
 - PiHole (DNS filtering / ad blocking / privacy)
+- WireGuard Easy (VPN)
 
 ## Commands
 ### Set static ip
@@ -29,13 +30,10 @@ Automatization using docker compose
 sudo nmtui
 ```
 ### Values
-address 192.168.1.10/24
-
-gateway 192.168.1.1
-
-dns 1.1.1.1
-
-dns 1.0.0.1
+- address: 192.168.1.10/24
+- gateway: 192.168.1.1
+- dns: 1.1.1.1
+- dns: 1.0.0.1
 
 ## Github
 ### Generate ssh key in nas
@@ -43,7 +41,7 @@ dns 1.0.0.1
 ssh-keygen -t rsa -b 4096 -C "elazon01@gmail.com"
 ```
 
-### Add ssh key in github
+### Add ssh key in Github
 Setting > SSH and GPG keys > New SSH key
 
 ## Docker
