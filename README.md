@@ -35,11 +35,6 @@ ssh-keygen -t rsa -b 4096 -C "elazon01@gmail.com"
 ### Add ssh key in github
 Setting > SSH and GPG keys > New SSH key
 
-## Generate password for portainer
-```
-docker run --rm httpd:2.4-alpine htpasswd -nbB admin "your_password_here" | cut -d ":" -f 2
-```
-
 ## Docker
 Up services
 ```
