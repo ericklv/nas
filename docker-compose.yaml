@@ -10,6 +10,29 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock # Docker host control
             - ${DISK_PATH}/Docker/portainer:/data
 
+    pihole:
+        container_name: pihole
+        image: pihole/pihole:2025.08.0
+        platform: linux/arm64
+        restart: unless-stopped
+        network_mode: host # Use host network mode, no additional configuration needed in ports
+        environment:
+            TZ: ${TZ}
+            FTLCONF_webserver_api_password: "${PIHOLE_PWD}" # Password para la web UI
+            FTLCONF_dns_listeningMode: all
+            FTLCONF_webserver_port: "7777"
+            FTLCONF_dns_domain: "redacted"
+            FTLCONF_dns_bogusPriv: "true"
+            FTLCONF_dns_reply_host_IPv4: ${PIHOLE_IP}
+            FTLCONF_LOCAL_IPV4: ${PIHOLE_IP}
+        volumes:
+            - ${DISK_PATH}/Docker/pihole/etc-pihole:/etc/pihole
+            - ${DISK_PATH}/Docker/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+        cap_add:
+            - NET_ADMIN
+            - SYS_TIME
+            - SYS_NICE
+
     watchtower:
         image: containrrr/watchtower:latest
         container_name: watchtower
@@ -30,8 +53,6 @@ services:
             - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
         networks:
             - default
-        env_file:
-            - .env
 
     homeassistant:
         container_name: homeassistant
@@ -44,8 +65,6 @@ services:
         ports:
             - "8123:8123"
         privileged: true
-        env_file:
-            - .env
 
     sftpgo:
         image: drakkan/sftpgo:v2.6.6
@@ -63,8 +82,6 @@ services:
             - SFTPGO_PASSWORD=${FTP_PASSWORD}
         networks:
             - default
-        env_file:
-            - .env
 
     homebridge:
         image: homebridge/homebridge:latest

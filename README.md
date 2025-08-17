@@ -19,9 +19,9 @@ Automatization using docker compose
 - Cloudflared (Cloudflare Tunnel)
 - Portainer (Monitoring containers)
 - Watchower (Update containers)
+- PiHole (DNS filtering / ad blocking / privacy)
 
 ### Coming soon
-- PiHole (DNS filtering / ad blocking / privacy)
 - WireGuard Easy (VPN)
 
 ## Commands
@@ -29,6 +29,7 @@ Automatization using docker compose
 ```
 sudo nmtui
 ```
+Edit your connection with this values.
 ### Values
 - address: 192.168.1.10/24
 - gateway: 192.168.1.1
