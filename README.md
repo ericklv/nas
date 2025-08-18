@@ -2,17 +2,21 @@
 
 Automatization using docker compose
 
-## First steps
+##  Steps
 
 - Install docker
 - Install docker compose
 - Configure Github user if you need it (see Github section)
 - Check `mount-hdd.sh` to mount your disk in NAS
 - Clone this repository
-- Set static ip (see commands section)
+- Set static ip in the NAS (explained below)
 - Configure your `.env` file with all variables required as described in `.env.example`
-- Run `docker compose up --build -d` to start containers
-- Run `install-hacs.sh` to install HACS in Home Assistant container
+- Run ` docker compose up --build -d ` to start containers
+- Run `sh install-hacs.sh` to install HACS in Home Assistant container
+- Configure your router with the static ip assigned to NAS as DNS primary, necessary for pihole
+- Configure all devices you need in home assistant
+- Go to Cloudflare Tunnel Dashboard and expose all containers you want. You need a domain previously configured in  Cloudflare
+- Enjoy!
 
 ## Services
 
@@ -23,13 +27,16 @@ Automatization using docker compose
 - Homebridge (integrate devices with HomeKit)
 - Cloudflared (Cloudflare Tunnel)
 - Portainer (Monitoring containers)
-- Watchower (Update containers)
+- WatchTower (Update containers)
 - PiHole (DNS filtering / ad blocking / privacy)
 - Tailscale (VPN)
 
 ### Coming soon
 
 - WireGuard Easy (VPN) ...some day. CGNAT is too complicated.
+- Addons for Home Assistant
+- QBitTorrent
+- Mosquitto (MQTT Broker for IOT)
 
 ## Commands
 
@@ -43,7 +50,7 @@ Edit your connection with this values.
 
 ### Values
 
-- address: 192.168.1.10/24
+- address: 192.168.1.10/24 (static ip example)
 - gateway: 192.168.1.1
 - dns: 1.1.1.1
 - dns: 1.0.0.1
@@ -67,11 +74,9 @@ Setting > SSH and GPG keys > New SSH key
 Go to [Tailscale](https://tailscale.com/) and create account.
 Move to Setting > Personal Settings > Keys > Generate auth key
 
-Complete form and enable _Reusable_ option. Remember auth key expire in 90 days (free mode).
+Complete form and enable _Reusable_ option. Remember auth key expire in 90 days (free mode). Add this key in your `.env` file.
 
-Add this key in your `.env` file.
-
-After run containers go to Machines section,in *homelab-docker* machine > 3 dots > edit route settings check _subnet routes_ and _exit node_ is enabled.
+After run containers go to Machines section, in *homelab-docker* machine > 3 dots > edit route settings check _subnet routes_ and _exit node_ is enabled.
 
 Install tailscale app in your mobile, login with your account and enjoy!
 
