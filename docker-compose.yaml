@@ -9,6 +9,8 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock # Docker host control
             - ${DISK_PATH}/Docker/portainer:/data
+        mem_limit: 512m
+        cpus: 0.5
 
     pihole:
         container_name: pihole
@@ -32,6 +34,8 @@ services:
             - NET_ADMIN
             - SYS_TIME
             - SYS_NICE
+        mem_limit: 512m
+        cpus: 0.5
     tailscale:
         image: tailscale/tailscale:latest
         container_name: tailscale
@@ -53,6 +57,8 @@ services:
         cap_add:
             - NET_ADMIN
             - SYS_MODULE
+        mem_limit: 256m
+        cpus: 0.25
 
     watchtower:
         image: containrrr/watchtower:latest
@@ -63,6 +69,8 @@ services:
         environment:
             - WATCHTOWER_CLEANUP=true # delete old images
             - WATCHTOWER_POLL_INTERVAL=3600 # update interval in seconds
+        mem_limit: 128m
+        cpus: 0.25
 
     cloudflared:
         image: cloudflare/cloudflared:2025.7.0
@@ -74,6 +82,8 @@ services:
             - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
         networks:
             - default
+        mem_limit: 256m
+        cpus: 0.25
 
     homeassistant:
         container_name: homeassistant
@@ -86,6 +96,8 @@ services:
         ports:
             - "8123:8123"
         privileged: true
+        mem_limit: 1536m
+        cpus: 1.5
 
     sftpgo:
         image: drakkan/sftpgo:v2.6.6
@@ -103,6 +115,8 @@ services:
             - SFTPGO_PASSWORD=${FTP_PASSWORD}
         networks:
             - default
+        mem_limit: 512m
+        cpus: 0.5
 
     homebridge:
         image: homebridge/homebridge:latest
@@ -117,3 +131,5 @@ services:
             options:
                 max-size: "10mb"
                 max-file: "1"
+        mem_limit: 1024m
+        cpus: 1.0
