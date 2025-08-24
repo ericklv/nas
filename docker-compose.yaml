@@ -73,7 +73,7 @@ services:
         cpus: 0.25
 
     cloudflared:
-        image: cloudflare/cloudflared:2025.7.0
+        image: cloudflare/cloudflared:2025.8.1
         platform: linux/arm64 # for ARM64 architecture
         container_name: cloudflared
         restart: unless-stopped
