@@ -36,6 +36,7 @@ services:
             - SYS_NICE
         mem_limit: 512m
         cpus: 0.5
+
     tailscale:
         image: tailscale/tailscale:latest
         container_name: tailscale
@@ -81,7 +82,7 @@ services:
         environment:
             - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
         networks:
-            - default
+            - ha_net
         mem_limit: 256m
         cpus: 0.25
 
@@ -98,6 +99,8 @@ services:
         privileged: true
         mem_limit: 1536m
         cpus: 1.5
+        networks:
+            - ha_net
 
     sftpgo:
         image: drakkan/sftpgo:v2.6.6
@@ -133,3 +136,10 @@ services:
                 max-file: "1"
         mem_limit: 1024m
         cpus: 1.0
+
+networks:
+    ha_net:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.20.0.0/24

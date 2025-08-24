@@ -82,6 +82,23 @@ After run docker containers go to Machines section, in *homelab-docker* machine 
 
 Install tailscale app in your mobile, login with your account and enjoy!
 
+## PiHole
+Fix database, maybe you need in first time
+```
+docker exec -it pihole pihole -g
+```
+
+## Home Assistant in Cloudflare Tunnel.
+Go to Home Assistant > File Editor > configuration.yaml > Edit
+```
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.20.0.0/24
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+```
+
 ## Docker commands
 
 Up services
