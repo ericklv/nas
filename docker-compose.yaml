@@ -107,19 +107,17 @@ services:
     container_name: tailscale
     restart: unless-stopped
     network_mode: host # necessary to expose local services
-    privileged: true   # necessary to manipulate the network
+    privileged: true # necessary to manipulate the network
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY} # solo se usa en el primer arranque
+      - TS_HOSTNAME=homelab-docker
+      - TS_ROUTES=192.168.1.0/24
+      - TS_EXTRA_ARGS=--advertise-exit-node
+      - TS_STATE_DIR=/var/lib/tailscale
     volumes:
       - ${DISK_PATH}/Docker/tailscale:/var/lib/tailscale
     devices:
       - /dev/net/tun:/dev/net/tun
-    command: sh -c "
-      tailscaled &
-      sleep 5 &&
-      tailscale up \
-      --authkey=${TS_AUTHKEY} \
-      --advertise-routes=192.168.1.0/24 \
-      --advertise-exit-node \
-      --hostname=homelab-docker"
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -134,7 +132,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - WATCHTOWER_CLEANUP=true       # delete old images
+      - WATCHTOWER_CLEANUP=true # delete old images
       - WATCHTOWER_POLL_INTERVAL=3600 # update interval in seconds
     mem_limit: 128m
     cpus: 0.25
