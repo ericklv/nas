@@ -1,13 +1,11 @@
 services:
-  # Traefik - Reverse Proxy
   traefik:
-    image: traefik:v2.11
+    image: traefik:v3.7.3
     container_name: traefik
-    environment:
-      - DOCKER_API_VERSION=1.41 # Forzamos la paz entre versiones
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=homelab"
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
@@ -22,23 +20,29 @@ services:
   # Pi-hole v6 - Network-wide Ad Blocking
   pihole:
     container_name: pihole
-    image: pihole/pihole:2026.04.1
+    image: pihole/pihole:2026.05.0
     platform: linux/arm64
     hostname: pihole
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "67:67/udp"   # DHCP (optional)
+      - "67:67/udp" # DHCP (optional)
       - "8080:80/tcp" # Web interface
     environment:
+      # Pi-hole v6 password configuration
       FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD:-changeme}
-      TZ: ${TZ}
+      # Pi-hole v6 timezone configuration
+      TZ: ${TZ:-America/New_York}
+      # Pi-hole v6 DNS upstream servers (separated by semicolons), use your favorite DNS providers
       FTLCONF_dns_upstreams: ${PIHOLE_DNS:-1.1.1.1;1.0.0.1}
+      # Pi-hole v6 listening mode (ALL for Docker bridge network)
       FTLCONF_dns_listeningMode: all
+      # Web interface hostname
       VIRTUAL_HOST: ${PIHOLE_HOSTNAME:-pihole.homelab}
       WEBTHEME: ${PIHOLE_THEME:-default-dark}
       FTLCONF_webserver_api_allowedHosts: pihole.homelab.pilon
       FTLCONF_webserver_api_enabled: true
+      # Local DNS entries for .local domains (dict format required for multiline block scalar)
       FTLCONF_misc_dnsmasq_lines: |
         address=/pihole.homelab.pilon/192.168.0.233
     labels:
@@ -46,8 +50,8 @@ services:
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.pilon`)"
       - "traefik.http.services.pihole.loadbalancer.server.port=80"
     volumes:
-      - ${DISK_PATH}/pihole/etc:/etc/pihole
-      - ${DISK_PATH}/pihole/dnsmasq:/etc/dnsmasq.d
+      - ${DISK_PATH:-./data}/pihole/etc:/etc/pihole
+      - ${DISK_PATH:-./data}/pihole/dnsmasq:/etc/dnsmasq.d
     cap_add:
       - NET_ADMIN
     dns:
@@ -66,9 +70,9 @@ services:
     platform: linux/arm64
     hostname: homeassistant
     environment:
-      - TZ=${TZ}
+      - TZ=${TZ:-America/New_York}
     volumes:
-      - ${DISK_PATH}/homeassistant:/config
+      - ${DISK_PATH:-./data}/homeassistant:/config
     privileged: true
     restart: unless-stopped
     network_mode: host
@@ -87,10 +91,10 @@ services:
       - "9000:9000" # HTTP Web UI (optional)
       - "8000:8000" # Edge agent
     environment:
-      - TZ=${TZ}
+      - TZ=${TZ:-America/New_York}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DISK_PATH}/Docker/portainer:/data
+      - ${DISK_PATH:-./data}/portainer:/data
     restart: unless-stopped
     networks:
       - homelab
@@ -146,7 +150,7 @@ services:
       - 1.1.1.1
       - 8.8.8.8
     environment:
-      - TZ=${TZ}
+      - TZ=${TZ:-America/New_York}
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     restart: unless-stopped
     networks:
@@ -167,39 +171,20 @@ services:
       - "2121:2121" # FTP port (optional)
       - "8090:8090" # WebDAV port (optional)
     environment:
-      - TZ=${TZ}
+      - TZ=${TZ:-America/New_York}
       - SFTPGO_CREATE_DEFAULT_ADMIN=true
       - SFTPGO_DEFAULT_ADMIN_USERNAME=${SFTPGO_ADMIN_USER:-admin}
       - SFTPGO_DEFAULT_ADMIN_PASSWORD=${SFTPGO_ADMIN_PASSWORD:-admin}
+      # Data provider configuration
       - SFTPGO_DATA_PROVIDER__DRIVER=bolt
       - SFTPGO_DATA_PROVIDER__NAME=/srv/sftpgo/sftpgo.db
     volumes:
-      - ${DISK_PATH}/Docker/sftpgo/data:/srv/sftpgo
-      - ${DISK_PATH}/Docker/sftpgo/home:/var/lib/sftpgo
-      - ${DISK_PATH}/Docker/sftpgo/backups:/srv/sftpgo/backups
+      - ${DISK_PATH:-./data}/sftpgo/data:/srv/sftpgo
+      - ${DISK_PATH:-./data}/sftpgo/home:/var/lib/sftpgo
+      - ${DISK_PATH:-./data}/sftpgo/backups:/srv/sftpgo/backups
     restart: unless-stopped
     networks:
       - homelab
-    mem_limit: 512m
-    cpus: 0.5
-
-  # Homebridge - HomeKit Bridge (preserved)
-  homebridge:
-    image: homebridge/homebridge:latest
-    container_name: homebridge
-    restart: always
-    network_mode: host
-    volumes:
-      - ${DISK_PATH}/Docker/homebridge:/homebridge
-    environment:
-      - TZ=${TZ}
-    logging:
-      driver: json-file
-      options:
-        max-size: "10mb"
-        max-file: "1"
-    mem_limit: 1024m
-    cpus: 1.0
 
 networks:
   homelab:
