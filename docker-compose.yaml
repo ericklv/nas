@@ -55,7 +55,7 @@ services:
     cap_add:
       - NET_ADMIN
     dns:
-      - 127.0.0.1
+      - 127.168.0.1
       - 1.1.1.1
     restart: unless-stopped
     networks:
@@ -126,7 +126,7 @@ services:
 
   # Watchtower - Automatic Container Updates (preserved)
   watchtower:
-    image: containrrr/watchtower:latest
+    image: ghcr.io/nicholas-fedor/watchtower:latest
     container_name: watchtower
     restart: always
     volumes:
