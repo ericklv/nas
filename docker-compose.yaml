@@ -235,6 +235,9 @@ services:
     container_name: door-watch
     build: ./door-watch
     hostname: door-watch
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       - TZ=${TZ:-America/New_York}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
