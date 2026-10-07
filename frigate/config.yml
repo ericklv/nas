@@ -1,0 +1,49 @@
+# Frigate config - Tapo C220
+# {FRIGATE_*} values are taken from the container environment (.env)
+
+mqtt:
+  host: mosquitto
+  port: 1883
+
+database:
+  path: /db/frigate.db
+
+# CPU detector (default COCO model, includes "cat")
+detectors:
+  cpu:
+    type: cpu
+    num_threads: 3
+
+go2rtc:
+  streams:
+    tapo_hd:
+      - rtsp://{FRIGATE_TAPO_USER}:{FRIGATE_TAPO_PASSWORD}@{FRIGATE_TAPO_IP}:554/stream1
+    tapo_sd:
+      - rtsp://{FRIGATE_TAPO_USER}:{FRIGATE_TAPO_PASSWORD}@{FRIGATE_TAPO_IP}:554/stream2
+
+cameras:
+  tapo_c220:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/tapo_sd
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 360
+      fps: 5
+    objects:
+      track:
+        - cat
+        - person
+      filters:
+        cat:
+          min_score: 0.5
+          threshold: 0.7
+    snapshots:
+      enabled: true
+      retain:
+        default: 7
+    record:
+      enabled: false
