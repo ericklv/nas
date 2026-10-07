@@ -44,7 +44,7 @@ services:
       FTLCONF_webserver_api_enabled: true
       # Local DNS entries for .local domains (dict format required for multiline block scalar)
       FTLCONF_misc_dnsmasq_lines: |
-        address=/pihole.homelab.pilon/192.168.0.233
+        address=/pihole.homelab.pilon/192.168.0.108
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.pilon`)"
