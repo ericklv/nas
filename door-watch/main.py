@@ -192,7 +192,10 @@ def reference_path(mode):
 
 def load_reference(mode):
     for m in (mode, "night" if mode == "day" else "day"):
-        ref = cv2.imread(str(reference_path(m)))
+        path = reference_path(m)
+        if not path.exists():
+            continue
+        ref = cv2.imread(str(path))
         if ref is not None:
             return ref, m
     return None, None
@@ -205,6 +208,7 @@ class DoorWatcher:
         self.streak = 0
         self.opened_at = 0.0
         self.last_reminder = 0.0
+        self.warned_no_reference = False
 
     def run(self):
         log.info("Door watcher started, ROI=%s threshold=%.2f", self.roi, DOOR_THRESHOLD)
@@ -221,8 +225,11 @@ class DoorWatcher:
         mode = "night" if is_night(frame) else "day"
         reference, ref_mode = load_reference(mode)
         if reference is None:
-            log.warning("No reference yet, run: docker compose exec door-watch python main.py capture-reference")
+            if not self.warned_no_reference:
+                self.warned_no_reference = True
+                log.warning("No reference yet, run: docker compose exec door-watch python main.py capture-reference")
             return
+        self.warned_no_reference = False
         score = door_score(crop(frame, self.roi), reference)
         observed = "open" if score > DOOR_THRESHOLD else "closed"
         log.debug("score=%.3f mode=%s ref=%s observed=%s", score, mode, ref_mode, observed)
