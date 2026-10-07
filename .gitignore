@@ -2,3 +2,4 @@
 .idea
 .vscode
 .git
+__pycache__/

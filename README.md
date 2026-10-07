@@ -30,13 +30,15 @@ Automation using docker compose in your NAS (raspberry pi, orange pi, nuc or del
 - WatchTower (Update containers)
 - PiHole (DNS filtering / ad blocking / privacy)
 - Tailscale (VPN)
+- Mosquitto (MQTT Broker, internal)
+- Frigate (NVR + cat detection on Tapo C220)
+- door-watch (Telegram alerts: cat detected / door open)
 
 ### Coming soon
 
 - WireGuard Easy (VPN) ...some day. CGNAT is too complicated.
 - Addons for Home Assistant
 - QBitTorrent
-- Mosquitto (MQTT Broker for IOT)
 
 ## Configuration
 
@@ -98,6 +100,45 @@ http:
   ip_ban_enabled: true
   login_attempts_threshold: 5
 ```
+
+## Tapo camera + AI (Frigate + door-watch)
+
+Frigate detects cats with the CPU detector (Fedora's mainline kernel uses the `rocket` NPU driver, Frigate's `rknn` detector needs the Rockchip vendor kernel). `door-watch` sends Telegram alerts for cats and for the door being open.
+
+### Camera
+
+Tapo app > Camera > Advanced settings > Camera account: create user/password and add them to `.env` (`FRIGATE_TAPO_*`). Test from the NAS:
+
+```
+ffprobe -rtsp_transport tcp "rtsp://USER:PASS@192.168.0.194:554/stream2"
+```
+
+### Fedora
+
+```
+sudo firewall-cmd --permanent --add-port=8971/tcp
+sudo firewall-cmd --reload
+```
+
+Frigate UI: `https://<nas-ip>:8971` (self-signed cert). The admin password is printed on first start: `docker logs frigate | grep -i password`.
+
+### Telegram bot
+
+- Talk to @BotFather > `/newbot` > copy the token to `TELEGRAM_BOT_TOKEN`
+- Send `/start` to your bot
+- Get your chat id: `curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates"` > `"chat":{"id":...}` to `TELEGRAM_CHAT_ID`
+
+### Door calibration
+
+`DOOR_ROI` is `x,y,w,h` in the 640x360 detect frame. With the door **closed**:
+
+```
+docker compose exec door-watch python main.py debug                    # check debug_roi.png in ${DISK_PATH}/door-watch
+docker compose exec door-watch python main.py capture-reference day
+docker compose exec door-watch python main.py capture-reference night  # at night (IR mode)
+```
+
+Open the door and run `debug` again: set `DOOR_THRESHOLD` between the closed and open scores, then `docker compose up -d door-watch`.
 
 ## Docker commands
 

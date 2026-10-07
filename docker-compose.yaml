@@ -184,6 +184,78 @@ services:
     networks:
       - homelab
 
+  # Mosquitto - MQTT Broker (internal only, used by Frigate and door-watch)
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto:2
+    platform: linux/arm64
+    hostname: mosquitto
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro,Z
+      - ${DISK_PATH:-./data}/mosquitto:/mosquitto/data
+    restart: unless-stopped
+    networks:
+      - homelab
+    mem_limit: 64m
+    cpus: 0.1
+
+  # Frigate - NVR with object detection (cat) for the Tapo C220
+  # CPU detector: Fedora's mainline kernel uses the "rocket" NPU driver, not supported by Frigate's rknn detector
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    platform: linux/arm64
+    hostname: frigate
+    shm_size: 128mb
+    ports:
+      - "8971:8971" # Web UI (HTTPS + login)
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - FRIGATE_TAPO_USER=${FRIGATE_TAPO_USER}
+      - FRIGATE_TAPO_PASSWORD=${FRIGATE_TAPO_PASSWORD}
+      - FRIGATE_TAPO_IP=${FRIGATE_TAPO_IP}
+    volumes:
+      - ./frigate/config.yml:/config/config.yml:Z
+      - ${DISK_PATH:-./data}/frigate/db:/db
+      - ${DISK_PATH:-./data}/frigate/media:/media/frigate
+      - type: tmpfs # cache for recording segments
+        target: /tmp/cache
+        tmpfs:
+          size: 256000000
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+    networks:
+      - homelab
+    mem_limit: 1536m
+    cpus: 3.0
+
+  # door-watch - Telegram alerts: cat detected (Frigate) and door open (ROI comparison)
+  door-watch:
+    container_name: door-watch
+    build: ./door-watch
+    hostname: door-watch
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - DOOR_ROI=${DOOR_ROI:-}
+      - DOOR_THRESHOLD=${DOOR_THRESHOLD:-0.15}
+      - DOOR_OPEN_ALERT_S=${DOOR_OPEN_ALERT_S:-600}
+      - CAT_COOLDOWN_S=${CAT_COOLDOWN_S:-300}
+    volumes:
+      - ${DISK_PATH:-./data}/door-watch:/data
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false" # local build, nothing to pull
+    depends_on:
+      - frigate
+      - mosquitto
+    restart: unless-stopped
+    networks:
+      - homelab
+    mem_limit: 256m
+    cpus: 0.5
+
 networks:
   homelab:
     driver: bridge
