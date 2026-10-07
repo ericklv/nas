@@ -62,9 +62,13 @@ def telegram(text, photo=None):
         else:
             r = requests.post(f"{base}/sendMessage", data={"chat_id": TELEGRAM_CHAT_ID, "text": text}, timeout=20)
         if not r.ok:
-            log.error("Telegram error %s: %s", r.status_code, r.text)
+            log.error("Telegram error %s: %s", r.status_code, hide_token(r.text))
     except requests.RequestException as e:
-        log.error("Telegram request failed: %s", e)
+        log.error("Telegram request failed: %s", hide_token(str(e)))
+
+
+def hide_token(text):
+    return text.replace(TELEGRAM_BOT_TOKEN, "***") if TELEGRAM_BOT_TOKEN else text
 
 
 # ---------- Frigate ----------
