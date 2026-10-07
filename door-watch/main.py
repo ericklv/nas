@@ -40,6 +40,7 @@ DOOR_THRESHOLD = float(os.environ.get("DOOR_THRESHOLD", "0.15"))
 DOOR_CONSECUTIVE = int(os.environ.get("DOOR_CONSECUTIVE", "3"))
 DOOR_OPEN_ALERT_S = float(os.environ.get("DOOR_OPEN_ALERT_S", "600"))  # 0 = no reminder
 NIGHT_SATURATION = float(os.environ.get("NIGHT_SATURATION", "12"))
+DOOR_MODE = os.environ.get("DOOR_MODE", "auto")  # auto / day / night
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 
@@ -159,10 +160,15 @@ def crop(frame, roi):
     return frame[y:y + h, x:x + w]
 
 
-def is_night(frame):
+def saturation(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)[:, :, 1].mean()
+
+
+def detect_mode(frame):
+    if DOOR_MODE in ("day", "night"):
+        return DOOR_MODE
     # IR night mode gives an almost grayscale image
-    saturation = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)[:, :, 1].mean()
-    return saturation < NIGHT_SATURATION
+    return "night" if saturation(frame) < NIGHT_SATURATION else "day"
 
 
 def edges(region):
@@ -222,7 +228,7 @@ class DoorWatcher:
     def tick(self):
         jpg = fetch_latest_jpg()
         frame = decode(jpg)
-        mode = "night" if is_night(frame) else "day"
+        mode = detect_mode(frame)
         reference, ref_mode = load_reference(mode)
         if reference is None:
             if not self.warned_no_reference:
@@ -266,7 +272,7 @@ class DoorWatcher:
 
 def capture_reference(mode=None):
     frame = decode(fetch_latest_jpg())
-    mode = mode or ("night" if is_night(frame) else "day")
+    mode = mode or detect_mode(frame)
     if mode not in ("day", "night"):
         raise SystemExit("mode must be 'day' or 'night'")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -277,7 +283,7 @@ def capture_reference(mode=None):
 def debug():
     roi = parse_roi()
     frame = decode(fetch_latest_jpg())
-    mode = "night" if is_night(frame) else "day"
+    mode = detect_mode(frame)
     x, y, w, h = roi
     marked = frame.copy()
     cv2.rectangle(marked, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -285,7 +291,7 @@ def debug():
     cv2.imwrite(str(DATA_DIR / "debug_roi.png"), marked)
     region = crop(frame, roi)
     cv2.imwrite(str(DATA_DIR / "debug_edges.png"), edges(region).astype(np.uint8) * 255)
-    print(f"Frame {frame.shape[1]}x{frame.shape[0]}, mode={mode}, ROI={roi}")
+    print(f"Frame {frame.shape[1]}x{frame.shape[0]}, mode={mode} (DOOR_MODE={DOOR_MODE}, saturation={saturation(frame):.1f}, night below {NIGHT_SATURATION}), ROI={roi}")
     reference, ref_mode = load_reference(mode)
     if reference is None:
         print("No reference yet (run capture-reference with the door closed)")
