@@ -44,7 +44,7 @@ services:
       FTLCONF_webserver_api_enabled: true
       # Local DNS entries for .local domains (dict format required for multiline block scalar)
       FTLCONF_misc_dnsmasq_lines: |
-        address=/pihole.homelab.pilon/192.168.0.233
+        address=/pihole.homelab.pilon/192.168.0.108
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.pilon`)"
@@ -183,6 +183,29 @@ services:
     restart: unless-stopped
     networks:
       - homelab
+  
+  stirling-pdf:
+    container_name: stirling-pdf
+    image: frooodle/s-pdf:latest
+    platform: linux/arm64
+    hostname: stirling-pdf
+    ports:
+      - "8082:8080" # Web UI HTTP
+    environment:
+      - SYSTEM_DEFAULTLOCALE=es_ES
+      - DOCKER_ENABLE_SECURITY=false
+      - INSTALL_BOOK_AND_ADVANCED_HTML_OPS=false
+      - TZ=${TZ:-America/New_York}
+    volumes:
+      - ${DISK_PATH:-./data}/stirling-pdf/trainingData:/usr/share/tessdata
+      - ${DISK_PATH:-./data}/stirling-pdf/extraConfigs:/configs
+      - ${DISK_PATH:-./data}/stirling-pdf/logs:/logs
+      - ${DISK_PATH:-./data}/stirling-pdf/pipeline:/pipeline
+    restart: unless-stopped
+    networks:
+      - homelab
+    mem_limit: 2g
+    cpus: 1.0
 
 networks:
   homelab:
