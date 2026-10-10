@@ -138,7 +138,11 @@ docker compose exec door-watch python main.py capture-reference day
 docker compose exec door-watch python main.py capture-reference night  # at night (IR mode)
 ```
 
-Open the door and run `debug` again: set `DOOR_THRESHOLD` between the closed and open scores, then `docker compose up -d door-watch`.
+- `capture-reference` replaces the references of that mode (use it after changing `DOOR_ROI`)
+- `add-reference day|night` adds one more for other lighting (sunrise, sunset, lamps)
+- `debug` shows the score per reference and saves `debug_compare.png`
+
+Set `DOOR_THRESHOLD` / `DOOR_THRESHOLD_NIGHT` between the closed and open scores. Full steps in [steps.md](steps.md).
 
 ## Docker commands
 

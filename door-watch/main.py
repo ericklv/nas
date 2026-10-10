@@ -6,7 +6,8 @@
 
 Usage:
   python main.py run                         # service (default in Dockerfile)
-  python main.py capture-reference [day|night]  # door CLOSED, saves reference
+  python main.py capture-reference [day|night]  # door CLOSED, replaces references of that mode
+  python main.py add-reference [day|night]      # door CLOSED, adds one more (other lighting)
   python main.py debug                       # saves /data/debug_*.png and prints score
 """
 
@@ -37,6 +38,8 @@ CAT_COOLDOWN_S = float(os.environ.get("CAT_COOLDOWN_S", "300"))
 DOOR_ROI = os.environ.get("DOOR_ROI", "")  # x,y,w,h in detect resolution (640x360)
 DOOR_INTERVAL_S = float(os.environ.get("DOOR_INTERVAL_S", "5"))
 DOOR_THRESHOLD = float(os.environ.get("DOOR_THRESHOLD", "0.15"))
+DOOR_THRESHOLD_NIGHT = float(os.environ.get("DOOR_THRESHOLD_NIGHT") or DOOR_THRESHOLD)
+MAX_REFERENCES = int(os.environ.get("MAX_REFERENCES", "10"))
 DOOR_CONSECUTIVE = int(os.environ.get("DOOR_CONSECUTIVE", "3"))
 DOOR_OPEN_ALERT_S = float(os.environ.get("DOOR_OPEN_ALERT_S", "600"))  # 0 = no reminder
 NIGHT_SATURATION = float(os.environ.get("NIGHT_SATURATION", "12"))
@@ -196,19 +199,28 @@ def door_score(region, reference):
     return min(1.0, mismatch / total)
 
 
-def reference_path(mode):
-    return DATA_DIR / f"reference_closed_{mode}.png"
+def threshold(mode):
+    return DOOR_THRESHOLD_NIGHT if mode == "night" else DOOR_THRESHOLD
 
 
-def load_reference(mode):
+def reference_paths(mode):
+    # reference_closed_day.png (legacy) + reference_closed_day_<n>.png
+    return sorted(DATA_DIR.glob(f"reference_closed_{mode}*.png"))
+
+
+def load_references(mode):
+    """Closed-door references for mode, falling back to the other mode."""
     for m in (mode, "night" if mode == "day" else "day"):
-        path = reference_path(m)
-        if not path.exists():
-            continue
-        ref = cv2.imread(str(path))
-        if ref is not None:
-            return ref, m
-    return None, None
+        refs = [(p.name, img) for p in reference_paths(m) if (img := cv2.imread(str(p))) is not None]
+        if refs:
+            return refs, m
+    return [], None
+
+
+def best_score(region, refs):
+    """Lowest score against all references (the closest lighting wins)."""
+    scores = [(door_score(region, img), name) for name, img in refs]
+    return min(scores)
 
 
 class DoorWatcher:
@@ -219,9 +231,11 @@ class DoorWatcher:
         self.opened_at = 0.0
         self.last_reminder = 0.0
         self.warned_no_reference = False
+        self.warned_fallback = False
 
     def run(self):
-        log.info("Door watcher started, ROI=%s threshold=%.2f", self.roi, DOOR_THRESHOLD)
+        log.info("Door watcher started, ROI=%s threshold day=%.2f night=%.2f",
+                 self.roi, DOOR_THRESHOLD, DOOR_THRESHOLD_NIGHT)
         while True:
             try:
                 self.tick()
@@ -233,16 +247,20 @@ class DoorWatcher:
         jpg = fetch_latest_jpg()
         frame = decode(jpg)
         mode = detect_mode(frame)
-        reference, ref_mode = load_reference(mode)
-        if reference is None:
+        refs, ref_mode = load_references(mode)
+        if not refs:
             if not self.warned_no_reference:
                 self.warned_no_reference = True
                 log.warning("No reference yet, run: docker compose exec door-watch python main.py capture-reference")
             return
         self.warned_no_reference = False
-        score = door_score(crop(frame, self.roi), reference)
-        observed = "open" if score > DOOR_THRESHOLD else "closed"
-        log.debug("score=%.3f mode=%s ref=%s observed=%s", score, mode, ref_mode, observed)
+        if ref_mode != mode and not self.warned_fallback:
+            log.warning("No %s reference, using %s ones (expect false alarms): run capture-reference %s",
+                        mode, ref_mode, mode)
+        self.warned_fallback = ref_mode != mode
+        score, ref_name = best_score(crop(frame, self.roi), refs)
+        observed = "open" if score > threshold(mode) else "closed"
+        log.debug("score=%.3f mode=%s ref=%s observed=%s", score, mode, ref_name, observed)
 
         if observed == self.state:
             self.streak = 0
@@ -252,13 +270,13 @@ class DoorWatcher:
         if self.streak < DOOR_CONSECUTIVE:
             return
         previous, self.state, self.streak = self.state, observed, 0
-        log.info("Door %s (score %.3f, %s)", observed, score, mode)
+        log.info("Door %s (score %.3f, %s, ref %s)", observed, score, mode, ref_name)
         if observed == "open":
             self.opened_at = self.last_reminder = time.time()
         if previous is None:
             return  # initial state, no alert
         if observed == "open":
-            telegram(f"🚪 Puerta abierta (score {score:.2f})", jpg)
+            telegram(f"🚪 Puerta abierta (score {score:.2f}, {mode})", jpg)
         else:
             telegram("✅ Puerta cerrada", jpg)
 
@@ -274,14 +292,40 @@ class DoorWatcher:
 
 # ---------- CLI ----------
 
-def capture_reference(mode=None):
+def capture_reference(mode=None, add=False):
     frame = decode(fetch_latest_jpg())
-    mode = mode or detect_mode(frame)
+    detected = detect_mode(frame)
+    mode = mode or detected
     if mode not in ("day", "night"):
         raise SystemExit("mode must be 'day' or 'night'")
+    if mode != detected:
+        print(f"Warning: saving a {mode} reference but the camera looks like {detected} "
+              f"(saturation={saturation(frame):.1f}, night below {NIGHT_SATURATION})")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(reference_path(mode)), crop(frame, parse_roi()))
-    print(f"Saved {reference_path(mode)}")
+    existing = reference_paths(mode)
+    if not add:
+        for p in existing:
+            p.unlink()
+        existing = []
+    elif len(existing) >= MAX_REFERENCES:
+        existing[0].unlink()  # drop the oldest
+        print(f"Removed {existing[0]} (max {MAX_REFERENCES})")
+    stamp, n = time.strftime("%Y%m%d-%H%M%S"), 0
+    while (path := DATA_DIR / f"reference_closed_{mode}_{stamp}{f'-{n}' if n else ''}.png").exists():
+        n += 1
+    cv2.imwrite(str(path), crop(frame, parse_roi()))
+    print(f"Saved {path} ({len(reference_paths(mode))} {mode} reference(s))")
+
+
+def compare_image(region, reference):
+    """reference | current | edges (red = only in current, blue = only in reference)."""
+    reference = cv2.resize(reference, (region.shape[1], region.shape[0]))
+    cur, ref = edges(region), edges(reference)
+    diff = np.zeros_like(region)
+    diff[cur & ref] = (255, 255, 255)
+    diff[cur & ~ref] = (0, 0, 255)
+    diff[ref & ~cur] = (255, 0, 0)
+    return np.hstack([reference, region, diff])
 
 
 def debug():
@@ -296,19 +340,26 @@ def debug():
     region = crop(frame, roi)
     cv2.imwrite(str(DATA_DIR / "debug_edges.png"), edges(region).astype(np.uint8) * 255)
     print(f"Frame {frame.shape[1]}x{frame.shape[0]}, mode={mode} (DOOR_MODE={DOOR_MODE}, saturation={saturation(frame):.1f}, night below {NIGHT_SATURATION}), ROI={roi}")
-    reference, ref_mode = load_reference(mode)
-    if reference is None:
+    refs, ref_mode = load_references(mode)
+    if not refs:
         print("No reference yet (run capture-reference with the door closed)")
         return
-    score = door_score(region, reference)
-    state = "OPEN" if score > DOOR_THRESHOLD else "closed"
-    print(f"score={score:.3f} (threshold {DOOR_THRESHOLD}) -> {state}, reference={ref_mode}")
+    if ref_mode != mode:
+        print(f"Warning: no {mode} reference, comparing with {ref_mode} ones")
+    for name, img in refs:
+        print(f"  {name}: {door_score(region, img):.3f}")
+    score, ref_name = best_score(region, refs)
+    best = next(img for name, img in refs if name == ref_name)
+    cv2.imwrite(str(DATA_DIR / "debug_compare.png"), compare_image(region, best))
+    state = "OPEN" if score > threshold(mode) else "closed"
+    print(f"score={score:.3f} (threshold {threshold(mode)}) -> {state}, best reference={ref_name}")
+    print(f"Saved {DATA_DIR / 'debug_compare.png'} (reference | current | edge diff)")
 
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
-    if cmd == "capture-reference":
-        capture_reference(sys.argv[2] if len(sys.argv) > 2 else None)
+    if cmd in ("capture-reference", "add-reference"):
+        capture_reference(sys.argv[2] if len(sys.argv) > 2 else None, add=cmd == "add-reference")
     elif cmd == "debug":
         debug()
     elif cmd == "run":
