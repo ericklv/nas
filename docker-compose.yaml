@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.7.3
+    image: traefik:v3.7.16
     container_name: traefik
     command:
       - "--providers.docker=true"
@@ -20,7 +20,7 @@ services:
   # Pi-hole v6 - Network-wide Ad Blocking
   pihole:
     container_name: pihole
-    image: pihole/pihole:2026.05.0
+    image: pihole/pihole:2026.10.0
     platform: linux/arm64
     hostname: pihole
     ports:
