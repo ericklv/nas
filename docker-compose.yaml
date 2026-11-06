@@ -46,6 +46,7 @@ services:
       FTLCONF_misc_dnsmasq_lines: |
         address=/pihole.homelab.pilon/192.168.0.108
         address=/navidrome.homelab.pilon/192.168.0.108
+        address=/jellyfin.homelab.pilon/192.168.0.108
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.pilon`)"
@@ -287,6 +288,32 @@ services:
       - homelab
     mem_limit: 512m
     cpus: 0.5
+
+  # Jellyfin - Media server (movies / TV). Rockchip HW transcoding needs the vendor kernel: prefer direct-play clients
+  jellyfin:
+    container_name: jellyfin
+    image: jellyfin/jellyfin:latest
+    platform: linux/arm64
+    hostname: jellyfin
+    user: "1000:1000"
+    ports:
+      - "8096:8096" # Web UI + API
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - JELLYFIN_PublishedServerUrl=http://jellyfin.homelab.pilon
+    volumes:
+      - ${DISK_PATH:-./data}/jellyfin/config:/config
+      - ${DISK_PATH:-./data}/jellyfin/cache:/cache
+      - ${MEDIA_PATH:-./data/media}:/media:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.homelab.pilon`)"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+    restart: unless-stopped
+    networks:
+      - homelab
+    mem_limit: 2048m
+    cpus: 2.0
 
 networks:
   homelab:

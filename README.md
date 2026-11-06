@@ -34,6 +34,7 @@ Automation using docker compose in your NAS (raspberry pi, orange pi, nuc or del
 - Frigate (NVR + cat detection on Tapo C220)
 - door-watch (Telegram alerts: cat detected / door open)
 - Navidrome (music streaming, Subsonic API)
+- Jellyfin (movies / TV streaming)
 
 ### Coming soon
 
