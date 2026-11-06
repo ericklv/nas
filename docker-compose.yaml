@@ -45,6 +45,7 @@ services:
       # Local DNS entries for .local domains (dict format required for multiline block scalar)
       FTLCONF_misc_dnsmasq_lines: |
         address=/pihole.homelab.pilon/192.168.0.108
+        address=/navidrome.homelab.pilon/192.168.0.108
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.pilon`)"
@@ -260,6 +261,31 @@ services:
     networks:
       - homelab
     mem_limit: 256m
+    cpus: 0.5
+
+  # Navidrome - Music streaming server (Subsonic API compatible)
+  navidrome:
+    container_name: navidrome
+    image: deluan/navidrome:latest
+    platform: linux/arm64
+    hostname: navidrome
+    user: "1000:1000"
+    ports:
+      - "4533:4533" # Web UI + Subsonic API
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - ND_SCANSCHEDULE=1h
+    volumes:
+      - ${DISK_PATH:-./data}/navidrome:/data
+      - ${MUSIC_PATH:-./data/music}:/music:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.navidrome.rule=Host(`navidrome.homelab.pilon`)"
+      - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
+    restart: unless-stopped
+    networks:
+      - homelab
+    mem_limit: 512m
     cpus: 0.5
 
 networks:
