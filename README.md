@@ -33,6 +33,7 @@ Automation using docker compose in your NAS (raspberry pi, orange pi, nuc or del
 - Mosquitto (MQTT Broker, internal)
 - Frigate (NVR + cat detection on Tapo C220)
 - door-watch (Telegram alerts: cat detected / door open)
+- Navidrome (music streaming, Subsonic API)
 
 ### Coming soon
 
