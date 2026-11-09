@@ -8,6 +8,7 @@ Automation using docker compose in your NAS (raspberry pi, orange pi, nuc or del
 - Install docker compose
 - Configure Github user if you need it (see Github section)
 - Check `mount-hdd.sh` to mount your disk in NAS
+- Run `./backup.sh [dest_dir]` to back up all service state (`DISK_PATH`) + `.env` (stops containers while archiving, keeps the last 5)
 - Clone this repository
 - Set static ip in the NAS (explained below)
 - Configure your `.env` file with all variables required as described in `.env.example`
@@ -112,7 +113,7 @@ Frigate detects cats with the CPU detector (Fedora's mainline kernel uses the `r
 Tapo app > Camera > Advanced settings > Camera account: create user/password and add them to `.env` (`FRIGATE_TAPO_*`). Test from the NAS:
 
 ```
-ffprobe -rtsp_transport tcp "rtsp://USER:PASS@192.168.1.20:554/stream2"
+ffprobe -rtsp_transport tcp "rtsp://USER:PASS@<camera-ip>:554/stream2"
 ```
 
 ### Fedora

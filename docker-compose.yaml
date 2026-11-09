@@ -44,9 +44,9 @@ services:
       FTLCONF_webserver_api_enabled: true
       # Local DNS entries for .local domains (dict format required for multiline block scalar)
       FTLCONF_misc_dnsmasq_lines: |
-        address=/pihole.homelab.pilon/192.168.1.10
-        address=/navidrome.homelab.pilon/192.168.1.10
-        address=/jellyfin.homelab.pilon/192.168.1.10
+        address=/pihole.homelab.pilon/${NAS_IP:?set NAS_IP in .env}
+        address=/navidrome.homelab.pilon/${NAS_IP:?set NAS_IP in .env}
+        address=/jellyfin.homelab.pilon/${NAS_IP:?set NAS_IP in .env}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.pilon`)"
@@ -113,7 +113,7 @@ services:
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY} # solo se usa en el primer arranque
       - TS_HOSTNAME=homelab-docker
-      - TS_ROUTES=192.168.1.0/24
+      - TS_ROUTES=${LAN_SUBNET:?set LAN_SUBNET in .env}
       - TS_EXTRA_ARGS=--advertise-exit-node
       - TS_STATE_DIR=/var/lib/tailscale
     volumes:
@@ -251,6 +251,7 @@ services:
       - NIGHT_SATURATION=${NIGHT_SATURATION:-12}
       - DOOR_OPEN_ALERT_S=${DOOR_OPEN_ALERT_S:-600}
       - CAT_COOLDOWN_S=${CAT_COOLDOWN_S:-300}
+      - ESP_NOTIFY_URL=${ESP_NOTIFY_URL:-}
     volumes:
       - ${DISK_PATH:-./data}/door-watch:/data
     labels:

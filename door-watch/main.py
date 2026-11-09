@@ -31,6 +31,8 @@ MQTT_HOST = os.environ.get("MQTT_HOST", "mosquitto")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+ESP_NOTIFY_URL = os.environ.get("ESP_NOTIFY_URL", "")  # e.g. http://192.168.1.50/notify, empty = off
+ESP_NOTIFY_S = int(os.environ.get("ESP_NOTIFY_S", "30"))
 
 CAT_LABELS = {l.strip() for l in os.environ.get("CAT_LABELS", "cat").split(",") if l.strip()}
 CAT_COOLDOWN_S = float(os.environ.get("CAT_COOLDOWN_S", "300"))
@@ -68,6 +70,19 @@ def telegram(text, photo=None):
             log.error("Telegram error %s: %s", r.status_code, hide_token(r.text))
     except requests.RequestException as e:
         log.error("Telegram request failed: %s", hide_token(str(e)))
+
+
+# ---------- ESP clock (/notify) ----------
+
+def esp_notify(text, bg):
+    if not ESP_NOTIFY_URL:
+        return
+    try:
+        r = requests.get(ESP_NOTIFY_URL, params={"t": text, "s": ESP_NOTIFY_S, "bg": bg}, timeout=5)
+        if not r.ok:
+            log.error("ESP notify error %s: %s", r.status_code, r.text.strip())
+    except requests.RequestException as e:
+        log.error("ESP notify failed: %s", e)
 
 
 def hide_token(text):
@@ -277,8 +292,10 @@ class DoorWatcher:
             return  # initial state, no alert
         if observed == "open":
             telegram(f"🚪 Puerta abierta (score {score:.2f}, {mode})", jpg)
+            esp_notify("Puerta abierta", "c62828")
         else:
             telegram("✅ Puerta cerrada", jpg)
+            esp_notify("Puerta cerrada", "2e7d32")
 
     def remind(self, jpg):
         if self.state != "open" or DOOR_OPEN_ALERT_S <= 0:
@@ -288,6 +305,7 @@ class DoorWatcher:
             self.last_reminder = now
             minutes = int((now - self.opened_at) // 60)
             telegram(f"⚠️ La puerta sigue abierta ({minutes} min)", jpg)
+            esp_notify(f"Puerta abierta {minutes} min", "ef6c00")
 
 
 # ---------- CLI ----------
