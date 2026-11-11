@@ -202,13 +202,15 @@ services:
     cpus: 0.1
 
   # Frigate - NVR with object detection (cat) for the Tapo C220
-  # CPU detector: Fedora's mainline kernel uses the "rocket" NPU driver, not supported by Frigate's rknn detector
+  # NPU detector: custom image with Mesa Teflon built for the mainline "rocket" driver (github.com/ericklv/frigate-npu-rockchip)
   frigate:
     container_name: frigate
-    image: ghcr.io/blakeblackshear/frigate:stable
+    image: ghcr.io/ericklv/frigate-npu-rockchip:stable
     platform: linux/arm64
     hostname: frigate
     shm_size: 128mb
+    devices:
+      - /dev/accel/accel0:/dev/accel/accel0 # rk3588 npu (rocket)
     ports:
       - "8971:8971" # Web UI (HTTPS + login)
     environment:

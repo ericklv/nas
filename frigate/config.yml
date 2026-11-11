@@ -8,11 +8,11 @@ mqtt:
 database:
   path: /db/frigate.db
 
-# CPU detector (default COCO model, includes "cat")
+# NPU detector via Mesa Teflon/rocket (default COCO model, includes "cat")
+# fallback: replace with "cpu: {type: cpu, num_threads: 3}"
 detectors:
-  cpu:
-    type: cpu
-    num_threads: 3
+  npu:
+    type: teflon_tfl
 
 go2rtc:
   streams:
@@ -47,3 +47,4 @@ cameras:
         default: 7
     record:
       enabled: false
+version: 0.18-0

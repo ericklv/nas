@@ -106,7 +106,7 @@ http:
 
 ## Tapo camera + AI (Frigate + door-watch)
 
-Frigate detects cats with the CPU detector (Fedora's mainline kernel uses the `rocket` NPU driver, Frigate's `rknn` detector needs the Rockchip vendor kernel). `door-watch` sends Telegram alerts for cats and for the door being open.
+Frigate detects cats on the RK3588 NPU with the `teflon_tfl` detector, using [frigate-npu-rockchip](https://github.com/ericklv/frigate-npu-rockchip) (upstream Frigate plus Mesa Teflon built for the mainline `rocket` driver; Frigate's `rknn` detector needs the Rockchip vendor kernel). `door-watch` sends Telegram alerts for cats and for the door being open.
 
 ### Camera
 
