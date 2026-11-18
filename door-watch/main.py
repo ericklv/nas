@@ -343,7 +343,7 @@ class TelegramCommands:
         log.info("Telegram commands enabled (/closed)")
         while True:
             try:
-                for u in self.poll(50):
+                for u in self.poll(10):  # long polls >~15s get 502 on this network
                     msg = u.get("message") or {}
                     if str(msg.get("chat", {}).get("id")) != str(TELEGRAM_CHAT_ID):
                         continue  # only the configured chat
