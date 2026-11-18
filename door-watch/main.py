@@ -9,6 +9,8 @@ Usage:
   python main.py capture-reference [day|night]  # door CLOSED, replaces references of that mode
   python main.py add-reference [day|night]      # door CLOSED, adds one more (other lighting)
   python main.py debug                       # saves /data/debug_*.png and prints score
+
+Telegram: reply /closed to a false "door open" alert to add the current frame as a closed reference.
 """
 
 import json
@@ -159,7 +161,7 @@ class CatWatcher:
         except requests.RequestException as e:
             log.error("Snapshot download failed: %s", e)
             photo = None
-        telegram(f"🐱 {label} detectado ({score:.0%})", photo)
+        telegram(f"🐱 {label} detected ({score:.0%})", photo)
 
 
 # ---------- Door (ROI comparison) ----------
@@ -291,11 +293,11 @@ class DoorWatcher:
         if previous is None:
             return  # initial state, no alert
         if observed == "open":
-            telegram(f"🚪 Puerta abierta (score {score:.2f}, {mode})", jpg)
-            esp_notify("Puerta abierta", "c62828")
+            telegram(f"🚪 Door open (score {score:.2f}, {mode}). Wrong? Reply /closed", jpg)
+            esp_notify("Door open", "c62828")
         else:
-            telegram("✅ Puerta cerrada", jpg)
-            esp_notify("Puerta cerrada", "2e7d32")
+            telegram("✅ Door closed", jpg)
+            esp_notify("Door closed", "2e7d32")
 
     def remind(self, jpg):
         if self.state != "open" or DOOR_OPEN_ALERT_S <= 0:
@@ -304,8 +306,67 @@ class DoorWatcher:
         if now - self.last_reminder >= DOOR_OPEN_ALERT_S:
             self.last_reminder = now
             minutes = int((now - self.opened_at) // 60)
-            telegram(f"⚠️ La puerta sigue abierta ({minutes} min)", jpg)
-            esp_notify(f"Puerta abierta {minutes} min", "ef6c00")
+            telegram(f"⚠️ Door still open ({minutes} min). Wrong? Reply /closed", jpg)
+            esp_notify(f"Door open {minutes} min", "ef6c00")
+
+
+# ---------- Telegram commands ----------
+
+class TelegramCommands:
+    """Long-polls the bot; /closed adds the current frame as a closed-door reference."""
+
+    def __init__(self):
+        self.base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+        self.offset = None
+
+    def start(self):
+        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+            return
+        threading.Thread(target=self.run, daemon=True).start()
+
+    def poll(self, timeout):
+        params = {"timeout": timeout, "allowed_updates": '["message"]'}
+        if self.offset is not None:
+            params["offset"] = self.offset
+        r = requests.get(f"{self.base}/getUpdates", params=params, timeout=timeout + 10)
+        r.raise_for_status()
+        updates = r.json().get("result", [])
+        if updates:
+            self.offset = updates[-1]["update_id"] + 1
+        return updates
+
+    def run(self):
+        try:
+            self.poll(0)  # skip commands sent while the service was down
+        except requests.RequestException as e:
+            log.warning("Telegram poll failed: %s", hide_token(str(e)))
+        log.info("Telegram commands enabled (/closed)")
+        while True:
+            try:
+                for u in self.poll(50):
+                    msg = u.get("message") or {}
+                    if str(msg.get("chat", {}).get("id")) != str(TELEGRAM_CHAT_ID):
+                        continue  # only the configured chat
+                    cmd = (msg.get("text") or "").split("@")[0].strip().lower()
+                    if cmd == "/closed":
+                        self.closed()
+            except requests.RequestException as e:
+                log.warning("Telegram poll failed: %s", hide_token(str(e)))
+                time.sleep(10)
+
+    def closed(self):
+        try:
+            path, mode = capture_reference(add=True)
+            frame = decode(fetch_latest_jpg())
+            refs, _ = load_references(detect_mode(frame))
+            score, _ = best_score(crop(frame, parse_roi()), refs)
+        except (requests.RequestException, ValueError, SystemExit) as e:
+            telegram(f"❌ Could not add reference: {e}")
+            return
+        count = len(reference_paths(mode))
+        log.info("Reference added from Telegram: %s", path.name)
+        telegram(f"👍 Saved as closed ({mode}, {count} reference(s)). Score now {score:.2f} "
+                 f"(threshold {threshold(mode)})")
 
 
 # ---------- CLI ----------
@@ -333,6 +394,7 @@ def capture_reference(mode=None, add=False):
         n += 1
     cv2.imwrite(str(path), crop(frame, parse_roi()))
     print(f"Saved {path} ({len(reference_paths(mode))} {mode} reference(s))")
+    return path, mode
 
 
 def compare_image(region, reference):
@@ -382,6 +444,7 @@ def main():
         debug()
     elif cmd == "run":
         CatWatcher().start()
+        TelegramCommands().start()
         if DOOR_ROI:
             DoorWatcher().run()
         else:

@@ -143,6 +143,7 @@ docker compose exec door-watch python main.py capture-reference night  # at nigh
 
 - `capture-reference` replaces the references of that mode (use it after changing `DOOR_ROI`)
 - `add-reference day|night` adds one more for other lighting (sunrise, sunset, lamps)
+- False "door open" alert? Reply `/closed` in the Telegram chat: the current frame is added as a closed reference (same as `add-reference`, auto day/night)
 - `debug` shows the score per reference and saves `debug_compare.png`
 
 Set `DOOR_THRESHOLD` / `DOOR_THRESHOLD_NIGHT` between the closed and open scores. Full steps in [steps.md](steps.md).
